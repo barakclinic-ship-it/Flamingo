@@ -181,6 +181,16 @@ header::after{
 #clr { right: 10px; }
 
 
+/* rotate control — top corner of the image window, mirrors zoom-ctrl's style */
+#rotate-ctrl{
+  position:absolute; top:10px; inset-inline-start:10px;
+  z-index:7; display:none; align-items:center; gap:2px;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(6px);
+  border:1px solid var(--line-strong); border-radius: 999px; padding:4px;
+  box-shadow: var(--shadow-sm);
+}
+#rotate-ctrl.show{ display:flex; }
+
 /* zoom control — floats over the image window only, never scales with it */
 #zoom-ctrl{
   position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
@@ -296,8 +306,8 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 
 footer{
   direction: ltr;
-  text-align:end; padding: .4rem 1.25rem 2.2rem; color: #000; font-size: 10px;
-  display:flex; align-items:center; justify-content:flex-end; gap:.35rem; letter-spacing:.02em; flex-wrap:wrap;
+  text-align:start; padding: .4rem 1.25rem 2.2rem; color: #000; font-size: 10px;
+  display:flex; align-items:center; justify-content:flex-start; gap:.35rem; letter-spacing:.02em; flex-wrap:wrap;
   opacity:.4; font-weight:400;
 }
 footer .fw{ font-weight:600; color: #000; }
@@ -376,6 +386,10 @@ footer .fw{ font-weight:600; color: #000; }
       </div>
       <div class="clabel" id="cll">Original</div>
       <div class="clabel" id="clr">Result</div>
+      <div class="rotate-ctrl" id="rotate-ctrl">
+        <button class="zoom-btn" id="rotate-left" title="Rotate left">&#8634;</button>
+        <button class="zoom-btn" id="rotate-right" title="Rotate right">&#8635;</button>
+      </div>
       <div class="zoom-ctrl" id="zoom-ctrl">
         <button class="zoom-btn" id="zoom-out" title="Zoom out">&#8722;</button>
         <span id="zoom-pct" title="Reset zoom">100%</span>
@@ -409,25 +423,6 @@ footer .fw{ font-weight:600; color: #000; }
 
       <hr class="div">
 
-      <div class="acc-section" id="acc-upscale">
-        <div class="acc-header" data-acc="upscale">
-          <span class="section-label" id="upscale-label">Upscale</span>
-          <span class="acc-chevron">&#9662;</span>
-        </div>
-        <div class="acc-body">
-          <div class="pills">
-            <button class="pill on" data-s="1" id="pill-none">None</button>
-            <button class="pill" data-s="2">2x</button>
-            <button class="pill" data-s="4">4x</button>
-            <button class="pill" data-s="6">6x</button>
-          </div>
-          <div class="scale-meta" id="si"></div>
-          <div class="warn" id="wb"></div>
-        </div>
-      </div>
-
-      <hr class="div">
-
       <div class="acc-section" id="acc-style">
         <div class="acc-header" data-acc="style">
           <span class="section-label" id="style-label">Style</span>
@@ -446,6 +441,25 @@ footer .fw{ font-weight:600; color: #000; }
             <button class="pill" data-style="silhouette" id="style-silhouette">Silhouette</button>
           </div>
           <div class="slider-row" style="margin-top:.6rem"><span class="slbl" id="lbl-sta">Intensity</span><input type="range" id="sta" min="0" max="100" value="100"><input class="num-input" id="sta-n" type="number" min="0" max="100" value="100"></div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="acc-section" id="acc-upscale">
+        <div class="acc-header" data-acc="upscale">
+          <span class="section-label" id="upscale-label">Upscale</span>
+          <span class="acc-chevron">&#9662;</span>
+        </div>
+        <div class="acc-body">
+          <div class="pills">
+            <button class="pill on" data-s="1" id="pill-none">None</button>
+            <button class="pill" data-s="2">2x</button>
+            <button class="pill" data-s="4">4x</button>
+            <button class="pill" data-s="6">6x</button>
+          </div>
+          <div class="scale-meta" id="si"></div>
+          <div class="warn" id="wb"></div>
         </div>
       </div>
 
@@ -473,7 +487,7 @@ footer .fw{ font-weight:600; color: #000; }
 
 <script>
 const MAX=9000, AREA_MAX=80000000, g=id=>document.getElementById(id);
-let origImg=null, scale=1, resultBlob=null, sliderPct=50, dragging=false, rafId=null, hasResult=false, resultCanvas=null, origFileName=null;
+let origImg=null, scale=1, resultBlob=null, sliderPct=50, dragging=false, rafId=null, hasResult=false, resultCanvas=null, origFileName=null, rotation=0;
 let styleMode='none';
 const imgSide=g('img-side');
 
@@ -484,6 +498,7 @@ const STR = {
     dzTitle:'Drag or click', dzFormats:'JPG · PNG · WEBP · TIFF · BMP',
     replace:'Replace photo',
     zoomOut:'Zoom out', zoomIn:'Zoom in', zoomReset:'Reset zoom',
+    rotateLeft:'Rotate left', rotateRight:'Rotate right',
     adjustments:'Adjustments', reset:'Reset',
     sharpness:'Sharpness', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', blur:'Blur',
     upscale:'Upscale', none:'None',
@@ -508,6 +523,7 @@ const STR = {
     dzTitle:'גרור או לחץ', dzFormats:'JPG · PNG · WEBP · TIFF · BMP',
     replace:'החלף תמונה',
     zoomOut:'הקטן', zoomIn:'הגדל', zoomReset:'איפוס זום',
+    rotateLeft:'סובב שמאלה', rotateRight:'סובב ימינה',
     adjustments:'כוונונים', reset:'איפוס',
     sharpness:'חדות', brightness:'בהירות', contrast:'ניגודיות', saturation:'סטורציה', blur:'טשטוש',
     upscale:'הגדלת רזולוציה', none:'ללא',
@@ -539,6 +555,8 @@ function applyLanguage(lang){
   g('dz-formats').textContent=t.dzFormats;
   g('replace-zone-text').textContent=t.replace;
   g('zoom-out').title=t.zoomOut;
+  g('rotate-left').title=t.rotateLeft;
+  g('rotate-right').title=t.rotateRight;
   g('zoom-in').title=t.zoomIn;
   g('zoom-pct').title=t.zoomReset;
   g('adj-label').textContent=t.adjustments;
@@ -626,10 +644,34 @@ function load(file){
   i.src = url;
 }
 
+/* redraws #oc (the "original", pre-edit base) at the current rotation.
+   Everything downstream (live preview, compare "before" side, and the
+   final exported/upscaled result) all derive from this canvas, so
+   rotation only needs to be handled in one place. */
+function redrawOriginalCanvas(){
+  if(!origImg) return;
+  const oc=g('oc');
+  const rot90=(rotation===90||rotation===270);
+  oc.width=rot90?origImg.height:origImg.width;
+  oc.height=rot90?origImg.width:origImg.height;
+  const octx=oc.getContext('2d');
+  octx.save();
+  octx.translate(oc.width/2, oc.height/2);
+  octx.rotate(rotation*Math.PI/180);
+  octx.drawImage(origImg, -origImg.width/2, -origImg.height/2);
+  octx.restore();
+}
+function rotateBy(deg){
+  if(!origImg) return;
+  rotation=(rotation+deg+360)%360;
+  redrawOriginalCanvas();
+  requestAnimationFrame(()=>{ sizeComparePane(); updScale(); schedulePreview(); });
+}
+
 function applyImage(i){
   origImg=i;
-  const oc=g('oc'); oc.width=i.width; oc.height=i.height;
-  oc.getContext('2d').drawImage(i,0,0);
+  rotation=0;
+  redrawOriginalCanvas();
   hasResult=false; resultBlob=null; resultCanvas=null;
   g('db').classList.remove('show');
   g('sb').classList.remove('show');
@@ -638,9 +680,12 @@ function applyImage(i){
   imgSide.classList.add('has-image');
   g('ctrl-side').classList.add('show');
   g('zoom-ctrl').classList.add('show');
+  g('rotate-ctrl').classList.add('show');
   resetZoom();
   requestAnimationFrame(()=>{ sizeComparePane(); updScale(); schedulePreview(); });
 }
+g('rotate-left').addEventListener('click', e=>{ e.stopPropagation(); rotateBy(-90); });
+g('rotate-right').addEventListener('click', e=>{ e.stopPropagation(); rotateBy(90); });
 
 /* ══════════════════════════ Slider ↔ number sync ══════════════════════════ */
 const pairs=[['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n'],['sta','sta-n']];
@@ -783,7 +828,7 @@ function sizeComparePane(){
   const pane=g('zoom-pane');
   const availW=pane.clientWidth, availH=pane.clientHeight;
   if(!availW || !availH) return;
-  const iw=origImg.width, ih=origImg.height;
+  const iw=g('oc').width, ih=g('oc').height;
   let w=availW, h=w*ih/iw;
   if(h>availH){ h=availH; w=h*iw/ih; }
   const ci=g('compare-inner');
@@ -810,7 +855,8 @@ function schedulePreview(){
 
 function doPreview(){
   if(!origImg) return;
-  const pc=g('pc'); pc.width=origImg.width; pc.height=origImg.height;
+  const oc=g('oc');
+  const pc=g('pc'); pc.width=oc.width; pc.height=oc.height;
   const ctx=pc.getContext('2d');
   const brVal=parseInt(g('br').value), ctVal=parseInt(g('ct').value), satVal=parseInt(g('sat').value);
   const shVal=parseInt(g('sh').value), blVal=parseInt(g('bl').value);
@@ -819,7 +865,7 @@ function doPreview(){
   let filterStr=`brightness(${100+brVal}%) contrast(${100+ctVal}%) saturate(${100+satVal}%)`;
   if(blVal>0) filterStr+=` blur(${blVal}px)`;
   ctx.filter=filterStr;
-  ctx.drawImage(origImg,0,0);
+  ctx.drawImage(oc,0,0);
   ctx.filter='none';
 
   if(shVal>0){
@@ -1013,11 +1059,12 @@ document.querySelectorAll('.pill').forEach(b=>{
 function updScale(){
   if(!origImg) return;
   const t=STR[currentLang];
-  const dw=origImg.width*scale,dh=origImg.height*scale;
+  const ow=g('oc').width, oh=g('oc').height;
+  const dw=ow*scale,dh=oh*scale;
   const big=scale>1&&(dw>MAX||dh>MAX||dw*dh>AREA_MAX);
-  if(scale===1){g('si').textContent=origImg.width+'×'+origImg.height;g('wb').style.display='none';g('rb').disabled=false;}
+  if(scale===1){g('si').textContent=ow+'×'+oh;g('wb').style.display='none';g('rb').disabled=false;}
   else if(big){g('si').textContent=dw+'×'+dh;g('wb').style.display='block';g('wb').textContent=t.warnLimit(MAX);g('rb').disabled=true;}
-  else{g('si').textContent=origImg.width+'×'+origImg.height+' → '+dw+'×'+dh;g('wb').style.display='none';g('rb').disabled=false;}
+  else{g('si').textContent=ow+'×'+oh+' → '+dw+'×'+dh;g('wb').style.display='none';g('rb').disabled=false;}
 }
 
 /* ══════════════════════════ Compare (before/after split) ══════════════════════════ */
@@ -1140,8 +1187,37 @@ g('zoom-pane').addEventListener('touchcancel', ()=>{ pinchActive=false; });
 const WK=`
 function sinc(x){return x===0?1:Math.sin(Math.PI*x)/(Math.PI*x);}
 function lk(x,a){return Math.abs(x)<a?sinc(x)*sinc(x/a):0;}
-function lscale(sd,sw,sh,dw,dh){const dd=new Uint8ClampedArray(dw*dh*4),a=3;for(let y=0;y<dh;y++)for(let x=0;x<dw;x++){const gx=(x+.5)/dw*sw-.5,gy=(y+.5)/dh*sh-.5;let r=0,g=0,b=0,al=0,wt=0;for(let ky=Math.floor(gy)-a+1;ky<=Math.floor(gy)+a;ky++){const wy=lk(gy-ky,a);for(let kx=Math.floor(gx)-a+1;kx<=Math.floor(gx)+a;kx++){const w=wy*lk(gx-kx,a),sx=Math.max(0,Math.min(sw-1,kx)),sy=Math.max(0,Math.min(sh-1,ky)),si=(sy*sw+sx)*4;r+=sd[si]*w;g+=sd[si+1]*w;b+=sd[si+2]*w;al+=sd[si+3]*w;wt+=w;}}const di=(y*dw+x)*4;dd[di]=Math.max(0,Math.min(255,r/wt+.5|0));dd[di+1]=Math.max(0,Math.min(255,g/wt+.5|0));dd[di+2]=Math.max(0,Math.min(255,b/wt+.5|0));dd[di+3]=Math.max(0,Math.min(255,al/wt+.5|0));}return dd;}
-self.onmessage=function(e){const{px,sw,sh,dw,dh,labels}=e.data;self.postMessage({t:'p',v:10,l:labels.scaling});const out=lscale(px,sw,sh,dw,dh);self.postMessage({t:'p',v:100,l:labels.done});self.postMessage({t:'d',px:out,dw,dh},[out.buffer]);};`;
+function buildAxisTable(srcLen,dstLen,a){const maxTaps=2*a,idx=new Int32Array(dstLen*maxTaps),wgt=new Float32Array(dstLen*maxTaps),scale=srcLen/dstLen;for(let d=0;d<dstLen;d++){const center=(d+.5)*scale-.5,lo=Math.floor(center)-a+1;let wsum=0,n=0;const li=new Int32Array(maxTaps),lw=new Float32Array(maxTaps);for(let k=0;k<maxTaps;k++){const s=lo+k,w=lk(center-s,a);if(w===0)continue;li[n]=Math.max(0,Math.min(srcLen-1,s));lw[n]=w;wsum+=w;n++;}const base=d*maxTaps;for(let k=0;k<maxTaps;k++){if(k<n){idx[base+k]=li[k];wgt[base+k]=lw[k]/wsum;}else{idx[base+k]=li[n>0?n-1:0];wgt[base+k]=0;}}}return{idx,wgt,maxTaps};}
+function lscale(sd,sw,sh,dw,dh,onProgress){
+  const a=3;
+  const tx=buildAxisTable(sw,dw,a),ty=buildAxisTable(sh,dh,a);
+  const txIdx=tx.idx,txW=tx.wgt,txTaps=tx.maxTaps,tyIdx=ty.idx,tyW=ty.wgt,tyTaps=ty.maxTaps;
+  const tmp=new Float32Array(dw*sh*4);
+  for(let y=0;y<sh;y++){
+    const srow=y*sw;
+    for(let x=0;x<dw;x++){
+      const base=x*txTaps;
+      let r=0,g=0,b=0,al=0;
+      for(let k=0;k<txTaps;k++){const w=txW[base+k];if(w===0)continue;const si=(srow+txIdx[base+k])*4;r+=sd[si]*w;g+=sd[si+1]*w;b+=sd[si+2]*w;al+=sd[si+3]*w;}
+      const di=(y*dw+x)*4;
+      tmp[di]=r;tmp[di+1]=g;tmp[di+2]=b;tmp[di+3]=al;
+    }
+    if(onProgress && (y&63)===0) onProgress(10+35*(y/sh));
+  }
+  const dd=new Uint8ClampedArray(dw*dh*4);
+  for(let x=0;x<dw;x++){
+    for(let y=0;y<dh;y++){
+      const base=y*tyTaps;
+      let r=0,g=0,b=0,al=0;
+      for(let k=0;k<tyTaps;k++){const w=tyW[base+k];if(w===0)continue;const si=(tyIdx[base+k]*dw+x)*4;r+=tmp[si]*w;g+=tmp[si+1]*w;b+=tmp[si+2]*w;al+=tmp[si+3]*w;}
+      const di=(y*dw+x)*4;
+      dd[di]=Math.max(0,Math.min(255,r+.5));dd[di+1]=Math.max(0,Math.min(255,g+.5));dd[di+2]=Math.max(0,Math.min(255,b+.5));dd[di+3]=Math.max(0,Math.min(255,al+.5));
+    }
+    if(onProgress && (x&63)===0) onProgress(45+50*(x/dw));
+  }
+  return dd;
+}
+self.onmessage=function(e){const{px,sw,sh,dw,dh,labels}=e.data;self.postMessage({t:'p',v:8,l:labels.scaling});const out=lscale(px,sw,sh,dw,dh,v=>self.postMessage({t:'p',v,l:labels.scaling}));self.postMessage({t:'p',v:100,l:labels.done});self.postMessage({t:'d',px:out,dw,dh},[out.buffer]);};`;
 
 g('rb').addEventListener('click',()=>{
   if(!origImg) return;
@@ -1150,10 +1226,17 @@ g('rb').addEventListener('click',()=>{
   g('rb').disabled=true;g('prog-wrap').style.display='block';g('prog-fill').style.width='2%';g('db').classList.remove('show');
 
   if(scale===1){
-    resultCanvas=document.createElement('canvas');
-    resultCanvas.width=sw;resultCanvas.height=sh;
-    resultCanvas.getContext('2d').drawImage(pc,0,0);
-    finalize(); return;
+    try{
+      resultCanvas=document.createElement('canvas');
+      resultCanvas.width=sw;resultCanvas.height=sh;
+      resultCanvas.getContext('2d').drawImage(pc,0,0);
+      finalize();
+    }catch(err){
+      g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+      g('rb').disabled=false;
+      alert(STR[currentLang].exportFailMsg);
+    }
+    return;
   }
 
   const px=new Uint8ClampedArray(pc.getContext('2d').getImageData(0,0,sw,sh).data);
@@ -1162,10 +1245,17 @@ g('rb').addEventListener('click',()=>{
     const m=ev.data;
     if(m.t==='p'){g('prog-fill').style.width=m.v+'%';g('prog-lbl').textContent=m.l;}
     else if(m.t==='d'){
-      resultCanvas=document.createElement('canvas');
-      resultCanvas.width=m.dw;resultCanvas.height=m.dh;
-      resultCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.px),m.dw,m.dh),0,0);
-      finalize(); wk.terminate(); URL.revokeObjectURL(wu);
+      try{
+        resultCanvas=document.createElement('canvas');
+        resultCanvas.width=m.dw;resultCanvas.height=m.dh;
+        resultCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.px),m.dw,m.dh),0,0);
+        finalize();
+      }catch(err){
+        g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+        g('rb').disabled=false;
+        alert(STR[currentLang].exportFailMsg);
+      }
+      wk.terminate(); URL.revokeObjectURL(wu);
     }
   };
   wk.onerror=()=>{
@@ -1188,13 +1278,31 @@ function buildFileName(){
 const shareSupported = typeof navigator.share === 'function';
 
 function finalize(){
-  hasResult=true; sliderPct=50; drawCompare();
+  try{
+    hasResult=true; sliderPct=50; drawCompare();
+  }catch(err){
+    hasResult=false;
+    g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+    g('rb').disabled=false;
+    alert(STR[currentLang].exportFailMsg);
+    return;
+  }
+  let settled=false;
+  const failSafe=setTimeout(()=>{
+    if(settled) return;
+    settled=true;
+    hasResult=false;
+    g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+    g('rb').disabled=false;
+    alert(STR[currentLang].exportFailMsg);
+  }, 20000);
   resultCanvas.toBlob(b=>{
+    if(settled) return;
+    settled=true;
+    clearTimeout(failSafe);
     g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
     g('rb').disabled=false;
     if(!b){
-      // encoding failed — almost always the output was too large for this
-      // device/browser to hold in memory. Never leave the UI stuck.
       hasResult=false;
       alert(STR[currentLang].exportFailMsg);
       return;
