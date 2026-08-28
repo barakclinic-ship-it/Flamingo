@@ -183,8 +183,8 @@ header::after{
 
 /* rotate control — top corner of the image window, mirrors zoom-ctrl's style */
 #rotate-ctrl{
-  position:absolute; top:10px; inset-inline-start:10px;
-  z-index:7; display:none; align-items:center; gap:2px;
+  position:absolute; top:46px; inset-inline-start:10px;
+  z-index:6; display:none; align-items:center; gap:2px;
   background: rgba(255,255,255,.92); backdrop-filter: blur(6px);
   border:1px solid var(--line-strong); border-radius: 999px; padding:4px;
   box-shadow: var(--shadow-sm);
@@ -435,18 +435,14 @@ footer .fw{ font-weight:600; color: #000; }
           </span>
         </div>
         <div class="acc-body">
-          <div class="pills" id="style-pills">
-            <button class="pill on" data-style="none" id="style-none">None</button>
-            <button class="pill" data-style="bw" id="style-bw">B&amp;W</button>
-            <button class="pill" data-style="vintage" id="style-vintage">Vintage</button>
-            <button class="pill" data-style="vivid" id="style-vivid">Vivid</button>
-            <button class="pill" data-style="warm" id="style-warm">Warm</button>
-            <button class="pill" data-style="cool" id="style-cool">Cool</button>
-            <button class="pill" data-style="vignette" id="style-vignette">Vignette</button>
-            <button class="pill" data-style="sketch" id="style-sketch">Sketch</button>
-            <button class="pill" data-style="silhouette" id="style-silhouette">Silhouette</button>
-          </div>
-          <div class="slider-row" style="margin-top:.6rem"><span class="slbl" id="lbl-sta">Intensity</span><input type="range" id="sta" min="0" max="100" value="100"><input class="num-input" id="sta-n" type="number" min="0" max="100" value="100"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-bw">B&amp;W</span><input type="range" id="sty-bw" min="0" max="100" value="0"><input class="num-input" id="sty-bw-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-vintage">Vintage</span><input type="range" id="sty-vintage" min="0" max="100" value="0"><input class="num-input" id="sty-vintage-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-vivid">Vivid</span><input type="range" id="sty-vivid" min="0" max="100" value="0"><input class="num-input" id="sty-vivid-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-warm">Warm</span><input type="range" id="sty-warm" min="0" max="100" value="0"><input class="num-input" id="sty-warm-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-cool">Cool</span><input type="range" id="sty-cool" min="0" max="100" value="0"><input class="num-input" id="sty-cool-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-vignette">Vignette</span><input type="range" id="sty-vignette" min="0" max="100" value="0"><input class="num-input" id="sty-vignette-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-sketch">Sketch</span><input type="range" id="sty-sketch" min="0" max="100" value="0"><input class="num-input" id="sty-sketch-n" type="number" min="0" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sty-silhouette">Silhouette</span><input type="range" id="sty-silhouette" min="0" max="100" value="0"><input class="num-input" id="sty-silhouette-n" type="number" min="0" max="100" value="0"></div>
         </div>
       </div>
 
@@ -494,7 +490,7 @@ footer .fw{ font-weight:600; color: #000; }
 <script>
 const MAX=9000, AREA_MAX=80000000, g=id=>document.getElementById(id);
 let origImg=null, scale=1, resultBlob=null, sliderPct=50, dragging=false, rafId=null, hasResult=false, resultCanvas=null, origFileName=null, rotation=0;
-let styleMode='none';
+const STYLE_IDS=['bw','vintage','vivid','warm','cool','vignette','sketch','silhouette'];
 const imgSide=g('img-side');
 
 /* ══════════════════════════ i18n ══════════════════════════ */
@@ -510,7 +506,7 @@ const STR = {
     upscale:'Upscale', none:'None',
     warnLimit:m=>'Exceeds browser limit ('+m+'px)',
     style:'Style', styleBw:'B&W', styleVintage:'Vintage', styleVivid:'Vivid', styleWarm:'Warm',
-    styleCool:'Cool', styleVignette:'Vignette', styleSketch:'Sketch', styleSilhouette:'Silhouette', intensity:'Intensity',
+    styleCool:'Cool', styleVignette:'Vignette', styleSketch:'Sketch', styleSilhouette:'Silhouette',
     generate:'Generate image', download:'Download PNG',
     share:'Share', shareTitle:'Flamingo',
     shareText:name=>'I edited the file "'+name+'" in Flamingo, and this is what came out.',
@@ -535,7 +531,7 @@ const STR = {
     upscale:'הגדלת רזולוציה', none:'ללא',
     warnLimit:m=>'חורג מלימיט הדפדפן ('+m+'px)',
     style:'סגנון', styleBw:'שחור-לבן', styleVintage:'וינטג\'', styleVivid:'עז', styleWarm:'חם',
-    styleCool:'קריר', styleVignette:'הצללה', styleSketch:'רישום', styleSilhouette:'סילואט', intensity:'עוצמה',
+    styleCool:'קריר', styleVignette:'הצללה', styleSketch:'רישום', styleSilhouette:'סילואט',
     generate:'הפק תמונה', download:'הורד PNG',
     share:'שתף', shareTitle:'Flamingo',
     shareText:name=>'ערכתי את הקובץ "'+name+'" ב-Flamingo וזה מה שיצא.',
@@ -576,16 +572,14 @@ function applyLanguage(lang){
   g('upscale-label').textContent=t.upscale;
   g('pill-none').textContent=t.none;
   g('style-label').textContent=t.style;
-  g('style-none').textContent=t.none;
-  g('style-bw').textContent=t.styleBw;
-  g('style-vintage').textContent=t.styleVintage;
-  g('style-vivid').textContent=t.styleVivid;
-  g('style-warm').textContent=t.styleWarm;
-  g('style-cool').textContent=t.styleCool;
-  g('style-vignette').textContent=t.styleVignette;
-  g('style-sketch').textContent=t.styleSketch;
-  g('style-silhouette').textContent=t.styleSilhouette;
-  g('lbl-sta').textContent=t.intensity;
+  g('lbl-sty-bw').textContent=t.styleBw;
+  g('lbl-sty-vintage').textContent=t.styleVintage;
+  g('lbl-sty-vivid').textContent=t.styleVivid;
+  g('lbl-sty-warm').textContent=t.styleWarm;
+  g('lbl-sty-cool').textContent=t.styleCool;
+  g('lbl-sty-vignette').textContent=t.styleVignette;
+  g('lbl-sty-sketch').textContent=t.styleSketch;
+  g('lbl-sty-silhouette').textContent=t.styleSilhouette;
   g('rb').textContent=t.generate;
   g('db').textContent='\u2193 '+t.download;
   g('sb').textContent='\u2191 '+t.share;
@@ -695,7 +689,10 @@ g('rotate-left').addEventListener('click', e=>{ e.stopPropagation(); rotateBy(-9
 g('rotate-right').addEventListener('click', e=>{ e.stopPropagation(); rotateBy(90); });
 
 /* ══════════════════════════ Slider ↔ number sync ══════════════════════════ */
-const pairs=[['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n'],['sta','sta-n']];
+const pairs=[['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n'],
+  ['sty-bw','sty-bw-n'],['sty-vintage','sty-vintage-n'],['sty-vivid','sty-vivid-n'],
+  ['sty-warm','sty-warm-n'],['sty-cool','sty-cool-n'],['sty-vignette','sty-vignette-n'],
+  ['sty-sketch','sty-sketch-n'],['sty-silhouette','sty-silhouette-n']];
 pairs.forEach(([rid,nid])=>{
   const range=g(rid), num=g(nid);
   if(!num) return;
@@ -732,15 +729,8 @@ pairs.forEach(([rid,nid])=>{
   });
 });
 
-/* ══════════════════════════ Style presets ══════════════════════════ */
-const STYLE_IDS=['none','bw','vintage','vivid','warm','cool','vignette','sketch','silhouette'];
-function setStyle(mode){
-  styleMode=mode;
-  STYLE_IDS.forEach(id=>g('style-'+id).classList.toggle('on', id===mode));
-  schedulePreview();
-}
-STYLE_IDS.forEach(id=>g('style-'+id).addEventListener('click', ()=>setStyle(id)));
-
+/* ══════════════════════════ Style — a list of independent sliders,
+   each style can be dialed in on its own, same as Adjustments ══════════════════════════ */
 function doReset(){
   [['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n']].forEach(([r,n])=>{g(r).value=0;if(g(n))g(n).value=0;});
   schedulePreview();
@@ -748,8 +738,8 @@ function doReset(){
 g('reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doReset(); });
 
 function doStyleReset(){
-  setStyle('none');
-  g('sta').value=100; g('sta-n').value=100;
+  STYLE_IDS.forEach(id=>{ g('sty-'+id).value=0; g('sty-'+id+'-n').value=0; });
+  schedulePreview();
 }
 g('style-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doStyleReset(); });
 
@@ -873,7 +863,6 @@ function doPreview(){
   const ctx=pc.getContext('2d');
   const brVal=parseInt(g('br').value), ctVal=parseInt(g('ct').value), satVal=parseInt(g('sat').value);
   const shVal=parseInt(g('sh').value), blVal=parseInt(g('bl').value);
-  const styleAmt=parseInt(g('sta').value)/100;
 
   let filterStr=`brightness(${100+brVal}%) contrast(${100+ctVal}%) saturate(${100+satVal}%)`;
   if(blVal>0) filterStr+=` blur(${blVal}px)`;
@@ -887,19 +876,26 @@ function doPreview(){
     ctx.putImageData(id,0,0);
   }
 
-  if(styleMode!=='none' && styleAmt>0){
-    const baseData=ctx.getImageData(0,0,pc.width,pc.height);
-    const styled=styledVersion(baseData, pc.width, pc.height, styleMode);
-    const bd=baseData.data, sd=styled.data;
+  // each style is its own independent slider — chain in any that are
+  // above 0, blending each by its own amount, same as a list of stacked
+  // adjustments rather than a single mutually-exclusive pick
+  let current=null;
+  for(const id of STYLE_IDS){
+    const amt=parseInt(g('sty-'+id).value)/100;
+    if(amt<=0) continue;
+    if(!current) current=ctx.getImageData(0,0,pc.width,pc.height);
+    const styled=styledVersion(current, pc.width, pc.height, id);
+    const bd=current.data, sd=styled.data;
     const out=new Uint8ClampedArray(bd.length);
     for(let i=0;i<bd.length;i+=4){
-      out[i]  =bd[i]  +(sd[i]  -bd[i])  *styleAmt;
-      out[i+1]=bd[i+1]+(sd[i+1]-bd[i+1])*styleAmt;
-      out[i+2]=bd[i+2]+(sd[i+2]-bd[i+2])*styleAmt;
-      out[i+3]=bd[i+3]+(sd[i+3]-bd[i+3])*styleAmt;
+      out[i]  =bd[i]  +(sd[i]  -bd[i])  *amt;
+      out[i+1]=bd[i+1]+(sd[i+1]-bd[i+1])*amt;
+      out[i+2]=bd[i+2]+(sd[i+2]-bd[i+2])*amt;
+      out[i+3]=bd[i+3]+(sd[i+3]-bd[i+3])*amt;
     }
-    ctx.putImageData(new ImageData(out,pc.width,pc.height),0,0);
+    current=new ImageData(out,pc.width,pc.height);
   }
+  if(current) ctx.putImageData(current,0,0);
 
   if(hasResult){
     resultCanvas=document.createElement('canvas');
@@ -1330,22 +1326,40 @@ g('db').addEventListener('click',()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(resultBlob);a.download=buildFileName();a.click();
 });
 
-g('sb').addEventListener('click',async()=>{
-  if(!resultBlob) return;
+function flattenToWhite(canvas){
+  const out=document.createElement('canvas');
+  out.width=canvas.width; out.height=canvas.height;
+  const octx=out.getContext('2d');
+  octx.fillStyle='#ffffff';
+  octx.fillRect(0,0,out.width,out.height);
+  octx.drawImage(canvas,0,0);
+  return out;
+}
+
+g('sb').addEventListener('click',()=>{
+  if(!resultCanvas) return;
   const t=STR[currentLang];
   const filename=buildFileName();
-  const file=new File([resultBlob], filename, {type:'image/png'});
   const captionName = origFileName || filename;
   const shareData = { title:t.shareTitle, text:t.shareText(captionName) };
-  try{
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({...shareData, files:[file]});
-    } else if(navigator.share){
-      await navigator.share(shareData);
-    } else {
-      alert(t.shareUnsupported);
-    }
-  }catch(e){ /* user cancelled the share sheet — nothing to do */ }
+  /* share a white-backed flattened copy — some share targets (WhatsApp,
+     Instagram, etc.) render transparent PNGs against black instead of
+     leaving them transparent, so we flatten just for sharing and leave
+     the actual download untouched (still fully transparent where the
+     photo has transparency, e.g. the Silhouette style). */
+  flattenToWhite(resultCanvas).toBlob(async b=>{
+    if(!b) return;
+    const file=new File([b], filename, {type:'image/png'});
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({...shareData, files:[file]});
+      } else if(navigator.share){
+        await navigator.share(shareData);
+      } else {
+        alert(t.shareUnsupported);
+      }
+    }catch(e){ /* user cancelled the share sheet — nothing to do */ }
+  }, 'image/png');
 });
 
 applyLanguage('en');
