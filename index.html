@@ -195,6 +195,30 @@ header::after{
 #rotate-btn:hover{ background:var(--pink); color:#fff; }
 #rotate-btn:active{ transform:scale(.92); }
 
+#flip-btn{
+  position:absolute; bottom:12px; left:58px;
+  z-index:7; display:none; align-items:center; justify-content:center;
+  width:38px; height:38px; border-radius:50%; padding:0;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(6px);
+  border:1px solid var(--line-strong); box-shadow: var(--shadow-sm);
+  color:var(--ink); font-size:18px; cursor:pointer; font-family:inherit;
+  transition: background .15s, color .15s, transform .1s;
+}
+#flip-btn.show{ display:flex; }
+#flip-btn:hover{ background:var(--pink); color:#fff; }
+#flip-btn:active{ transform:scale(.92); }
+#flip-btn.on{ background:var(--pink); color:#fff; border-color:var(--pink); }
+
+#busy-spinner{
+  position:absolute; top:50%; left:50%; width:30px; height:30px;
+  margin:-15px 0 0 -15px; z-index:9; display:none;
+  border:3px solid rgba(226,62,119,.22); border-top-color:var(--pink);
+  border-radius:50%; animation:flamingo-spin .7s linear infinite;
+  pointer-events:none;
+}
+#img-side.busy #busy-spinner{ display:block; }
+@keyframes flamingo-spin{ to{ transform:rotate(360deg); } }
+
 /* zoom control — floats over the image window only, never scales with it */
 #zoom-ctrl{
   position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
@@ -394,6 +418,8 @@ footer .fw{ font-weight:600; color: #000; }
       <div class="clabel" id="cll">Original</div>
       <div class="clabel" id="clr">Result</div>
       <button id="rotate-btn" title="Rotate">&#8635;</button>
+      <button id="flip-btn" title="Flip">&#8596;</button>
+      <div id="busy-spinner"></div>
       <div class="zoom-ctrl" id="zoom-ctrl">
         <button class="zoom-btn" id="zoom-out" title="Zoom out">&#8722;</button>
         <span id="zoom-pct" title="Reset zoom">100%</span>
@@ -525,7 +551,7 @@ footer .fw{ font-weight:600; color: #000; }
 
 <script>
 const MAX=9000, AREA_MAX=80000000, g=id=>document.getElementById(id);
-let origImg=null, scale=1, resultBlob=null, sliderPct=50, dragging=false, rafId=null, hasResult=false, resultCanvas=null, origFileName=null, rotation=0;
+let origImg=null, scale=1, resultBlob=null, sliderPct=50, dragging=false, rafId=null, hasResult=false, resultCanvas=null, origFileName=null, rotation=0, flipped=false;
 const STYLE_IDS=['bw','vintage','vivid','warm','cool','vignette','sketch','silhouette','posterize','invert','duotone'];
 const imgSide=g('img-side');
 
@@ -536,7 +562,7 @@ const STR = {
     dzTitle:'Drag or click', dzFormats:'JPG · PNG · WEBP · TIFF · BMP',
     replace:'Replace photo',
     zoomOut:'Zoom out', zoomIn:'Zoom in', zoomReset:'Reset zoom',
-    rotate:'Rotate',
+    rotate:'Rotate', flip:'Flip',
     reset:'Reset',
     light:'Light', color:'Color', detail:'Detail',
     sharpness:'Sharpness', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', blur:'Blur',
@@ -550,7 +576,7 @@ const STR = {
     share:'Share', shareTitle:'Flamingo',
     shareText:name=>'I edited the file "'+name+'" in Flamingo, and this is what came out.',
     shareUnsupported:'Sharing isn\u2019t supported in this browser \u2014 use Download instead.',
-    scaling:'Upscaling…', done:'Done!',
+    scaling:'Upscaling…', done:'Done!', processing:'Processing…',
     original:'Original', result:'Result',
     heicMsg:'HEIC files aren\u2019t supported directly in the browser.\n\nConvert to JPG/PNG first:\n• Mac: open in Preview → Export as JPG\n• iPhone: Settings → Camera → Formats → Most Compatible\n• Online: heictojpg.com',
     tiffMsg:'TIFF isn\u2019t supported in this browser. Convert to JPG/PNG first.',
@@ -564,7 +590,7 @@ const STR = {
     dzTitle:'גרור או לחץ', dzFormats:'JPG · PNG · WEBP · TIFF · BMP',
     replace:'החלף תמונה',
     zoomOut:'הקטן', zoomIn:'הגדל', zoomReset:'איפוס זום',
-    rotate:'סובב',
+    rotate:'סובב', flip:'הפוך',
     reset:'איפוס',
     light:'תאורה', color:'צבע', detail:'פרטים',
     sharpness:'חדות', brightness:'בהירות', contrast:'ניגודיות', saturation:'סטורציה', blur:'טשטוש',
@@ -578,7 +604,7 @@ const STR = {
     share:'שתף', shareTitle:'Flamingo',
     shareText:name=>'ערכתי את הקובץ "'+name+'" ב-Flamingo וזה מה שיצא.',
     shareUnsupported:'שיתוף לא נתמך בדפדפן הזה — השתמש בהורדה במקום.',
-    scaling:'מגדיל…', done:'הושלם!',
+    scaling:'מגדיל…', done:'הושלם!', processing:'מעבד…',
     original:'מקור', result:'תוצאה',
     heicMsg:'קבצי HEIC לא נתמכים ישירות בדפדפן.\n\nהמר ל-JPG/PNG תחילה:\n• Mac: פתח ב-Preview ← ייצא כ-JPG\n• iPhone: הגדרות ← מצלמה ← פורמטים ← הכי תואם\n• אונליין: heictojpg.com',
     tiffMsg:'TIFF לא נתמך בדפדפן זה. המר ל-JPG/PNG תחילה.',
@@ -600,6 +626,7 @@ function applyLanguage(lang){
   g('replace-zone-text').textContent=t.replace;
   g('zoom-out').title=t.zoomOut;
   g('rotate-btn').title=t.rotate;
+  g('flip-btn').title=t.flip;
   g('zoom-in').title=t.zoomIn;
   g('zoom-pct').title=t.zoomReset;
   g('light-label').textContent=t.light;
@@ -697,10 +724,10 @@ function load(file){
   i.src = url;
 }
 
-/* redraws #oc (the "original", pre-edit base) at the current rotation.
-   Everything downstream (live preview, compare "before" side, and the
-   final exported/upscaled result) all derive from this canvas, so
-   rotation only needs to be handled in one place. */
+/* redraws #oc (the "original", pre-edit base) at the current rotation
+   and flip state. Everything downstream (live preview, compare "before"
+   side, and the final exported/upscaled result) all derive from this
+   canvas, so rotation/flip only need to be handled in one place. */
 function redrawOriginalCanvas(){
   if(!origImg) return;
   const oc=g('oc');
@@ -711,8 +738,10 @@ function redrawOriginalCanvas(){
   octx.save();
   octx.translate(oc.width/2, oc.height/2);
   octx.rotate(rotation*Math.PI/180);
+  if(flipped) octx.scale(-1,1);
   octx.drawImage(origImg, -origImg.width/2, -origImg.height/2);
   octx.restore();
+  buildPreviewSrc();
 }
 function rotateBy(deg){
   if(!origImg) return;
@@ -720,10 +749,18 @@ function rotateBy(deg){
   redrawOriginalCanvas();
   requestAnimationFrame(()=>{ sizeComparePane(); updScale(); schedulePreview(); });
 }
+function toggleFlip(){
+  if(!origImg) return;
+  flipped=!flipped;
+  redrawOriginalCanvas();
+  requestAnimationFrame(()=>{ sizeComparePane(); updScale(); schedulePreview(); });
+}
 
 function applyImage(i){
   origImg=i;
   rotation=0;
+  flipped=false;
+  g('flip-btn').classList.remove('on');
   redrawOriginalCanvas();
   hasResult=false; resultBlob=null; resultCanvas=null;
   g('db').classList.remove('show');
@@ -734,10 +771,12 @@ function applyImage(i){
   g('ctrl-side').classList.add('show');
   g('zoom-ctrl').classList.add('show');
   g('rotate-btn').classList.add('show');
+  g('flip-btn').classList.add('show');
   resetZoom();
   requestAnimationFrame(()=>{ sizeComparePane(); updScale(); schedulePreview(); });
 }
 g('rotate-btn').addEventListener('click', e=>{ e.stopPropagation(); rotateBy(90); });
+g('flip-btn').addEventListener('click', e=>{ e.stopPropagation(); toggleFlip(); g('flip-btn').classList.toggle('on', flipped); });
 
 /* ══════════════════════════ Slider ↔ number sync ══════════════════════════ */
 const pairs=[['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n'],
@@ -804,11 +843,19 @@ function doStyleReset(){
 g('style-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doStyleReset(); });
 
 /* ══════════════════════════ Collapsible sections ══════════════════════════ */
-document.querySelectorAll('.acc-header').forEach(h=>{
-  h.addEventListener('click', ()=>{
-    h.closest('.acc-section').classList.toggle('collapsed');
+/* ══════════════════════════ Collapsible sections — exclusive accordion:
+   opening one section closes the others, so it's never possible to end up
+   with everything expanded except the section you didn't touch. ══════════════════════════ */
+{
+  const accSections = document.querySelectorAll('.acc-section');
+  accSections.forEach(sec=>{
+    sec.querySelector('.acc-header').addEventListener('click', ()=>{
+      const wasCollapsed = sec.classList.contains('collapsed');
+      accSections.forEach(s=>s.classList.add('collapsed'));
+      if(wasCollapsed) sec.classList.remove('collapsed');
+    });
   });
-});
+}
 
 /* ══════════════════════════ Empty-state before/after teaser ══════════════════════════
    A small interactive demo of the compare slider — a faint "before" and a more
@@ -913,13 +960,35 @@ window.addEventListener('resize',()=>{
 /* ══════════════════════════ Live preview ══════════════════════════ */
 function schedulePreview(){
   if(rafId) cancelAnimationFrame(rafId);
-  rafId=requestAnimationFrame(doPreview);
+  rafId=requestAnimationFrame(()=>{
+    imgSide.classList.add('busy');
+    setTimeout(()=>{
+      doPreview();
+      imgSide.classList.remove('busy');
+    }, 0);
+  });
 }
 
-function doPreview(){
-  if(!origImg) return;
+/* Live preview runs on a downscaled copy of the photo — style effects like
+   Sketch involve multiple blur passes over every pixel, which is fine once
+   but far too slow to redo on every slider tick at full resolution. The
+   downscaled copy is rebuilt only when the source photo itself changes
+   (new upload, rotate, flip); "Generate" always reprocesses at full
+   resolution regardless, so exported quality is never reduced. */
+let previewSrc=null;
+function buildPreviewSrc(){
   const oc=g('oc');
-  const pc=g('pc'); pc.width=oc.width; pc.height=oc.height;
+  const MAXPREVIEW=1400;
+  if(Math.max(oc.width,oc.height)<=MAXPREVIEW){ previewSrc=oc; return; }
+  const s=MAXPREVIEW/Math.max(oc.width,oc.height);
+  const pw=Math.max(1,Math.round(oc.width*s)), ph=Math.max(1,Math.round(oc.height*s));
+  if(!previewSrc || previewSrc===oc) previewSrc=document.createElement('canvas');
+  previewSrc.width=pw; previewSrc.height=ph;
+  previewSrc.getContext('2d').drawImage(oc,0,0,pw,ph);
+}
+
+function processInto(pc, src){
+  pc.width=src.width; pc.height=src.height;
   const ctx=pc.getContext('2d');
   const brVal=parseInt(g('br').value), ctVal=parseInt(g('ct').value), satVal=parseInt(g('sat').value);
   const shVal=parseInt(g('sh').value), blVal=parseInt(g('bl').value);
@@ -929,7 +998,7 @@ function doPreview(){
   let filterStr=`brightness(${100+brVal}%) contrast(${100+ctVal}%) saturate(${100+satVal}%)`;
   if(blVal>0) filterStr+=` blur(${blVal}px)`;
   ctx.filter=filterStr;
-  ctx.drawImage(oc,0,0);
+  ctx.drawImage(src,0,0);
   ctx.filter='none';
 
   if(shVal>0){
@@ -967,6 +1036,13 @@ function doPreview(){
     current=new ImageData(out,pc.width,pc.height);
   }
   if(current) ctx.putImageData(current,0,0);
+}
+
+function doPreview(){
+  if(!origImg) return;
+  if(!previewSrc) buildPreviewSrc();
+  const pc=g('pc');
+  processInto(pc, previewSrc);
 
   if(hasResult){
     resultCanvas=document.createElement('canvas');
@@ -1385,50 +1461,66 @@ self.onmessage=function(e){const{px,sw,sh,dw,dh,labels}=e.data;self.postMessage(
 
 g('rb').addEventListener('click',()=>{
   if(!origImg) return;
-  const pc=g('pc'); if(!pc.width) doPreview();
-  const sw=pc.width,sh=pc.height,dw=sw*scale,dh=sh*scale;
-  g('rb').disabled=true;g('prog-wrap').style.display='block';g('prog-fill').style.width='2%';g('db').classList.remove('show');
-
-  if(scale===1){
+  g('rb').disabled=true;g('prog-wrap').style.display='block';g('prog-fill').style.width='2%';
+  g('prog-lbl').textContent=STR[currentLang].processing;
+  g('db').classList.remove('show');
+  // defer the full-resolution reprocess one tick so the browser actually
+  // paints the "processing…" state first — otherwise the synchronous work
+  // below blocks the very repaint that would show the app isn't frozen
+  setTimeout(()=>{
+    let pc;
     try{
-      resultCanvas=document.createElement('canvas');
-      resultCanvas.width=sw;resultCanvas.height=sh;
-      resultCanvas.getContext('2d').drawImage(pc,0,0);
-      finalize();
+      pc=g('pc');
+      processInto(pc, g('oc')); // always full resolution for the real export, regardless of the (downscaled) live-preview
     }catch(err){
       g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
       g('rb').disabled=false;
       alert(STR[currentLang].exportFailMsg);
+      return;
     }
-    return;
-  }
+    const sw=pc.width,sh=pc.height,dw=sw*scale,dh=sh*scale;
 
-  const px=new Uint8ClampedArray(pc.getContext('2d').getImageData(0,0,sw,sh).data);
-  const blob=new Blob([WK],{type:'application/javascript'}),wu=URL.createObjectURL(blob),wk=new Worker(wu);
-  wk.onmessage=ev=>{
-    const m=ev.data;
-    if(m.t==='p'){g('prog-fill').style.width=m.v+'%';g('prog-lbl').textContent=m.l;}
-    else if(m.t==='d'){
+    if(scale===1){
       try{
         resultCanvas=document.createElement('canvas');
-        resultCanvas.width=m.dw;resultCanvas.height=m.dh;
-        resultCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.px),m.dw,m.dh),0,0);
+        resultCanvas.width=sw;resultCanvas.height=sh;
+        resultCanvas.getContext('2d').drawImage(pc,0,0);
         finalize();
       }catch(err){
         g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
         g('rb').disabled=false;
         alert(STR[currentLang].exportFailMsg);
       }
-      wk.terminate(); URL.revokeObjectURL(wu);
+      return;
     }
-  };
-  wk.onerror=()=>{
-    g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
-    g('rb').disabled=false;
-    alert(STR[currentLang].exportFailMsg);
-    wk.terminate(); URL.revokeObjectURL(wu);
-  };
-  wk.postMessage({px,sw,sh,dw,dh,labels:{scaling:STR[currentLang].scaling,done:STR[currentLang].done}},[px.buffer]);
+
+    const px=new Uint8ClampedArray(pc.getContext('2d').getImageData(0,0,sw,sh).data);
+    const blob=new Blob([WK],{type:'application/javascript'}),wu=URL.createObjectURL(blob),wk=new Worker(wu);
+    wk.onmessage=ev=>{
+      const m=ev.data;
+      if(m.t==='p'){g('prog-fill').style.width=m.v+'%';g('prog-lbl').textContent=m.l;}
+      else if(m.t==='d'){
+        try{
+          resultCanvas=document.createElement('canvas');
+          resultCanvas.width=m.dw;resultCanvas.height=m.dh;
+          resultCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.px),m.dw,m.dh),0,0);
+          finalize();
+        }catch(err){
+          g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+          g('rb').disabled=false;
+          alert(STR[currentLang].exportFailMsg);
+        }
+        wk.terminate(); URL.revokeObjectURL(wu);
+      }
+    };
+    wk.onerror=()=>{
+      g('prog-wrap').style.display='none'; g('prog-fill').style.width='0%';
+      g('rb').disabled=false;
+      alert(STR[currentLang].exportFailMsg);
+      wk.terminate(); URL.revokeObjectURL(wu);
+    };
+    wk.postMessage({px,sw,sh,dw,dh,labels:{scaling:STR[currentLang].scaling,done:STR[currentLang].done}},[px.buffer]);
+  }, 0);
 });
 
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
