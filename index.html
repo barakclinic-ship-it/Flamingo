@@ -408,30 +408,58 @@ footer .fw{ font-weight:600; color: #000; }
         <span id="replace-zone-text">Upload a different photo</span>
       </div>
 
-      <div class="acc-section" id="acc-adj">
-        <div class="acc-header" data-acc="adj">
-          <span class="section-label" id="adj-label">Adjustments</span>
+      <div class="acc-section collapsed" id="acc-light">
+        <div class="acc-header" data-acc="light">
+          <span class="section-label" id="light-label">Light</span>
           <span class="acc-right">
-            <button class="btn-reset" id="reset-btn">Reset</button>
+            <button class="btn-reset" id="light-reset-btn">Reset</button>
+            <span class="acc-chevron">&#9662;</span>
+          </span>
+        </div>
+        <div class="acc-body">
+          <div class="slider-row"><span class="slbl" id="lbl-br">Brightness</span><input type="range" id="br" min="-100" max="100" value="0"><input class="num-input" id="br-n" type="number" min="-100" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-ct">Contrast</span><input type="range" id="ct" min="-100" max="100" value="0"><input class="num-input" id="ct-n" type="number" min="-100" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-hi">Highlights</span><input type="range" id="hi" min="-100" max="100" value="0"><input class="num-input" id="hi-n" type="number" min="-100" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-sh2">Shadows</span><input type="range" id="sh2" min="-100" max="100" value="0"><input class="num-input" id="sh2-n" type="number" min="-100" max="100" value="0"></div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="acc-section collapsed" id="acc-color">
+        <div class="acc-header" data-acc="color">
+          <span class="section-label" id="color-label">Color</span>
+          <span class="acc-right">
+            <button class="btn-reset" id="color-reset-btn">Reset</button>
+            <span class="acc-chevron">&#9662;</span>
+          </span>
+        </div>
+        <div class="acc-body">
+          <div class="slider-row"><span class="slbl" id="lbl-sat">Saturation</span><input type="range" id="sat" min="-100" max="100" value="0"><input class="num-input" id="sat-n" type="number" min="-100" max="100" value="0"></div>
+          <div class="slider-row"><span class="slbl" id="lbl-tmp">Temperature</span><input type="range" id="tmp" min="-100" max="100" value="0"><input class="num-input" id="tmp-n" type="number" min="-100" max="100" value="0"></div>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <div class="acc-section collapsed" id="acc-detail">
+        <div class="acc-header" data-acc="detail">
+          <span class="section-label" id="detail-label">Detail</span>
+          <span class="acc-right">
+            <button class="btn-reset" id="detail-reset-btn">Reset</button>
             <span class="acc-chevron">&#9662;</span>
           </span>
         </div>
         <div class="acc-body">
           <div class="slider-row"><span class="slbl" id="lbl-sh">Sharpness</span><input type="range" id="sh" min="-100" max="100" value="0"><input class="num-input" id="sh-n" type="number" min="-100" max="100" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-br">Brightness</span><input type="range" id="br" min="-100" max="100" value="0"><input class="num-input" id="br-n" type="number" min="-100" max="100" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-ct">Contrast</span><input type="range" id="ct" min="-100" max="100" value="0"><input class="num-input" id="ct-n" type="number" min="-100" max="100" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-sat">Saturation</span><input type="range" id="sat" min="-100" max="100" value="0"><input class="num-input" id="sat-n" type="number" min="-100" max="100" value="0"></div>
           <div class="slider-row"><span class="slbl" id="lbl-bl">Blur</span><input type="range" id="bl" min="0" max="20" value="0"><input class="num-input" id="bl-n" type="number" min="0" max="20" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-hi">Highlights</span><input type="range" id="hi" min="-100" max="100" value="0"><input class="num-input" id="hi-n" type="number" min="-100" max="100" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-sh2">Shadows</span><input type="range" id="sh2" min="-100" max="100" value="0"><input class="num-input" id="sh2-n" type="number" min="-100" max="100" value="0"></div>
-          <div class="slider-row"><span class="slbl" id="lbl-tmp">Temperature</span><input type="range" id="tmp" min="-100" max="100" value="0"><input class="num-input" id="tmp-n" type="number" min="-100" max="100" value="0"></div>
           <div class="slider-row"><span class="slbl" id="lbl-gr">Grain</span><input type="range" id="gr" min="0" max="100" value="0"><input class="num-input" id="gr-n" type="number" min="0" max="100" value="0"></div>
         </div>
       </div>
 
       <hr class="div">
 
-      <div class="acc-section" id="acc-style">
+      <div class="acc-section collapsed" id="acc-style">
         <div class="acc-header" data-acc="style">
           <span class="section-label" id="style-label">Style</span>
           <span class="acc-right">
@@ -456,7 +484,7 @@ footer .fw{ font-weight:600; color: #000; }
 
       <hr class="div">
 
-      <div class="acc-section" id="acc-upscale">
+      <div class="acc-section collapsed" id="acc-upscale">
         <div class="acc-header" data-acc="upscale">
           <span class="section-label" id="upscale-label">Upscale</span>
           <span class="acc-chevron">&#9662;</span>
@@ -509,7 +537,8 @@ const STR = {
     replace:'Replace photo',
     zoomOut:'Zoom out', zoomIn:'Zoom in', zoomReset:'Reset zoom',
     rotate:'Rotate',
-    adjustments:'Adjustments', reset:'Reset',
+    reset:'Reset',
+    light:'Light', color:'Color', detail:'Detail',
     sharpness:'Sharpness', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', blur:'Blur',
     highlights:'Highlights', shadows:'Shadows', temperature:'Temperature', grain:'Grain',
     stylePosterize:'Posterize', styleInvert:'Invert', styleDuotone:'Duotone',
@@ -536,7 +565,8 @@ const STR = {
     replace:'החלף תמונה',
     zoomOut:'הקטן', zoomIn:'הגדל', zoomReset:'איפוס זום',
     rotate:'סובב',
-    adjustments:'כוונונים', reset:'איפוס',
+    reset:'איפוס',
+    light:'תאורה', color:'צבע', detail:'פרטים',
     sharpness:'חדות', brightness:'בהירות', contrast:'ניגודיות', saturation:'סטורציה', blur:'טשטוש',
     highlights:'הבהרות', shadows:'צללים', temperature:'טמפרטורה', grain:'גרעיניות',
     stylePosterize:'פוסטריזציה', styleInvert:'היפוך', styleDuotone:'דו-גוני',
@@ -572,8 +602,12 @@ function applyLanguage(lang){
   g('rotate-btn').title=t.rotate;
   g('zoom-in').title=t.zoomIn;
   g('zoom-pct').title=t.zoomReset;
-  g('adj-label').textContent=t.adjustments;
-  g('reset-btn').textContent=t.reset;
+  g('light-label').textContent=t.light;
+  g('light-reset-btn').textContent=t.reset;
+  g('color-label').textContent=t.color;
+  g('color-reset-btn').textContent=t.reset;
+  g('detail-label').textContent=t.detail;
+  g('detail-reset-btn').textContent=t.reset;
   g('style-reset-btn').textContent=t.reset;
   g('lbl-sh').textContent=t.sharpness;
   g('lbl-br').textContent=t.brightness;
@@ -748,13 +782,20 @@ pairs.forEach(([rid,nid])=>{
   });
 });
 
-/* ══════════════════════════ Style — a list of independent sliders,
-   each style can be dialed in on its own, same as Adjustments ══════════════════════════ */
-function doReset(){
-  [['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl-n'],['hi','hi-n'],['sh2','sh2-n'],['tmp','tmp-n'],['gr','gr-n']].forEach(([r,n])=>{g(r).value=0;if(g(n))g(n).value=0;});
+/* ══════════════════════════ Adjustments split into topic groups ══════════════════════════ */
+function resetFields(pairs){
+  pairs.forEach(([r,n])=>{g(r).value=0;if(g(n))g(n).value=0;});
   schedulePreview();
 }
-g('reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doReset(); });
+function doLightReset(){ resetFields([['br','br-n'],['ct','ct-n'],['hi','hi-n'],['sh2','sh2-n']]); }
+function doColorReset(){ resetFields([['sat','sat-n'],['tmp','tmp-n']]); }
+function doDetailReset(){ resetFields([['sh','sh-n'],['bl','bl-n'],['gr','gr-n']]); }
+g('light-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doLightReset(); });
+g('color-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doColorReset(); });
+g('detail-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doDetailReset(); });
+
+/* ══════════════════════════ Style — a list of independent sliders,
+   each style can be dialed in on its own, same as Adjustments ══════════════════════════ */
 
 function doStyleReset(){
   STYLE_IDS.forEach(id=>{ g('sty-'+id).value=0; g('sty-'+id+'-n').value=0; });
