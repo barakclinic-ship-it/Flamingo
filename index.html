@@ -559,14 +559,12 @@ footer .fw{ font-weight:600; color: #000; }
           <span class="acc-chevron">&#9662;</span>
         </div>
         <div class="acc-body">
-          <div class="tog-row" style="margin-bottom:.5rem">
-            <label class="tog"><input type="checkbox" id="cmp"><span class="track"></span></label>
-            <div><div class="tog-lbl" id="cmpl">Off</div><div class="tog-sub" id="cmp-sub">PNG, lossless</div></div>
+          <div class="pills" id="cmp-pills">
+            <button class="pill on" data-q="100" id="cmp-100">100%</button>
+            <button class="pill" data-q="85" id="cmp-85">85%</button>
+            <button class="pill" data-q="70" id="cmp-70">70%</button>
           </div>
-          <div id="cmp-q-wrap" style="display:none">
-            <div class="slider-row"><span class="slbl" id="lbl-cmpq">Quality</span><input type="range" id="cmpq" min="70" max="95" value="88"><input class="num-input" id="cmpq-n" type="number" min="70" max="95" value="88"></div>
-            <div class="scale-meta" id="cmp-meta"></div>
-          </div>
+          <div class="scale-meta" id="cmp-meta"></div>
         </div>
       </div>
 
@@ -610,8 +608,7 @@ const STR = {
     appShareCopied:'Link copied!',
     reset:'Reset',
     light:'Light', color:'Color', detail:'Detail',
-    fileSize:'File Size', cmpOff:'Off', cmpOn:'On',
-    cmpSubOff:'PNG, lossless', cmpSubOn:'JPEG, smaller file', quality:'Quality',
+    fileSize:'File Size', estSize:s=>'Estimated size: '+s,
     sharpness:'Sharpness', brightness:'Brightness', contrast:'Contrast', saturation:'Saturation', blur:'Blur',
     highlights:'Highlights', shadows:'Shadows', temperature:'Temperature', grain:'Grain',
     stylePosterize:'Posterize', styleInvert:'Invert', styleDuotone:'Duotone',
@@ -642,8 +639,7 @@ const STR = {
     appShareCopied:'הקישור הועתק!',
     reset:'איפוס',
     light:'תאורה', color:'צבע', detail:'פרטים',
-    fileSize:'גודל קובץ', cmpOff:'כבוי', cmpOn:'פעיל',
-    cmpSubOff:'PNG, ללא אובדן', cmpSubOn:'JPEG, קובץ קטן יותר', quality:'איכות',
+    fileSize:'גודל קובץ', estSize:s=>'גודל משוער: '+s,
     sharpness:'חדות', brightness:'בהירות', contrast:'ניגודיות', saturation:'סטורציה', blur:'טשטוש',
     highlights:'הבהרות', shadows:'צללים', temperature:'טמפרטורה', grain:'גרעיניות',
     stylePosterize:'פוסטריזציה', styleInvert:'היפוך', styleDuotone:'דו-גוני',
@@ -689,9 +685,6 @@ function applyLanguage(lang){
   g('detail-reset-btn').textContent=t.reset;
   g('style-reset-btn').textContent=t.reset;
   g('compress-label').textContent=t.fileSize;
-  g('cmpl').textContent = g('cmp').checked ? t.cmpOn : t.cmpOff;
-  g('cmp-sub').textContent = g('cmp').checked ? t.cmpSubOn : t.cmpSubOff;
-  g('lbl-cmpq').textContent=t.quality;
   g('lbl-sh').textContent=t.sharpness;
   g('lbl-br').textContent=t.brightness;
   g('lbl-ct').textContent=t.contrast;
@@ -717,6 +710,7 @@ function applyLanguage(lang){
   g('lbl-sty-duotone').textContent=t.styleDuotone;
   g('rb').textContent=t.generate;
   updateDownloadLabel();
+  if(origImg) scheduleSizeEstimate();
   g('sb').textContent='\u2191 '+t.share;
   g('cll').textContent=t.original;
   g('clr').textContent=t.result;
@@ -840,8 +834,7 @@ const pairs=[['sh','sh-n'],['br','br-n'],['ct','ct-n'],['sat','sat-n'],['bl','bl
   ['sty-bw','sty-bw-n'],['sty-vintage','sty-vintage-n'],['sty-vivid','sty-vivid-n'],
   ['sty-warm','sty-warm-n'],['sty-cool','sty-cool-n'],['sty-vignette','sty-vignette-n'],
   ['sty-sketch','sty-sketch-n'],['sty-silhouette','sty-silhouette-n'],
-  ['sty-posterize','sty-posterize-n'],['sty-invert','sty-invert-n'],['sty-duotone','sty-duotone-n'],
-  ['cmpq','cmpq-n']];
+  ['sty-posterize','sty-posterize-n'],['sty-invert','sty-invert-n'],['sty-duotone','sty-duotone-n']];
 pairs.forEach(([rid,nid])=>{
   const range=g(rid), num=g(nid);
   if(!num) return;
@@ -900,22 +893,51 @@ function doStyleReset(){
 g('style-reset-btn').addEventListener('click', e=>{ e.stopPropagation(); doStyleReset(); });
 
 /* ══════════════════════════ File size / compression ══════════════════════════
-   Off (default): export as PNG, lossless, unchanged from before.
-   On: export as JPEG at a quality kept in a safe 70–95 range, so file size
-   drops substantially while staying visually close to lossless. */
+   100% = PNG, lossless, unchanged from before. 85%/70% = JPEG at that
+   quality (kept at 70+ so it never gets visibly degraded) — same pill
+   pattern as Upscale, with the actual computed file size shown below,
+   projected to the final (possibly upscaled) output size. */
+let cmpQuality=100;
+const CMP_LEVELS=[100,85,70];
+function setCmpQuality(q){
+  cmpQuality=q;
+  CMP_LEVELS.forEach(lv=>g('cmp-'+lv).classList.toggle('on', lv===q));
+  updateDownloadLabel();
+  scheduleSizeEstimate();
+}
+CMP_LEVELS.forEach(lv=>g('cmp-'+lv).addEventListener('click', ()=>setCmpQuality(lv)));
+
 function updateDownloadLabel(){
   const t=STR[currentLang];
-  g('db').textContent='\u2193 '+(g('cmp').checked ? t.downloadJpg : t.downloadPng);
+  g('db').textContent='\u2193 '+(cmpQuality<100 ? t.downloadJpg : t.downloadPng);
 }
 
-g('cmp').addEventListener('change', ()=>{
-  const t=STR[currentLang];
-  const on=g('cmp').checked;
-  g('cmpl').textContent = on ? t.cmpOn : t.cmpOff;
-  g('cmp-sub').textContent = on ? t.cmpSubOn : t.cmpSubOff;
-  g('cmp-q-wrap').style.display = on ? 'block' : 'none';
-  updateDownloadLabel();
-});
+function formatBytes(n){
+  if(n<1024*1024) return Math.max(1,Math.round(n/1024))+' KB';
+  return (n/1024/1024).toFixed(1)+' MB';
+}
+
+let sizeEstToken=0;
+function scheduleSizeEstimate(){
+  if(!origImg) return;
+  const myToken=++sizeEstToken;
+  const pc=g('pc');
+  if(!pc.width) return;
+  const oc=g('oc');
+  const finalPixels=(oc.width*scale)*(oc.height*scale);
+  const previewPixels=pc.width*pc.height;
+  const ratio=previewPixels>0 ? finalPixels/previewPixels : 1;
+
+  const cb=blob=>{
+    if(myToken!==sizeEstToken || !blob) return; // a newer estimate superseded this one
+    g('cmp-meta').textContent=STR[currentLang].estSize(formatBytes(blob.size*ratio));
+  };
+  if(cmpQuality<100){
+    flattenToWhite(pc).toBlob(cb,'image/jpeg',cmpQuality/100);
+  } else {
+    pc.toBlob(cb,'image/png');
+  }
+}
 
 /* ══════════════════════════ Collapsible sections — exclusive accordion:
    opening one section closes the others, so it's never possible to end up
@@ -1128,6 +1150,7 @@ function doPreview(){
     cc.getContext('2d').drawImage(pc,0,0);
     g('compare-inner').classList.add('show');
   }
+  scheduleSizeEstimate();
 }
 
 function applyHighlights(imageData, amt){
@@ -1367,8 +1390,8 @@ function styledVersion(baseData, w, h, mode){
 }
 
 /* ══════════════════════════ Scale (upscale) ══════════════════════════ */
-document.querySelectorAll('.pill').forEach(b=>{
-  b.addEventListener('click',()=>{scale=parseInt(b.dataset.s);document.querySelectorAll('.pill').forEach(x=>x.classList.remove('on'));b.classList.add('on');updScale();});
+document.querySelectorAll('#acc-upscale .pill').forEach(b=>{
+  b.addEventListener('click',()=>{scale=parseInt(b.dataset.s);document.querySelectorAll('#acc-upscale .pill').forEach(x=>x.classList.remove('on'));b.classList.add('on');updScale();});
 });
 function updScale(){
   if(!origImg) return;
@@ -1379,6 +1402,7 @@ function updScale(){
   if(scale===1){g('si').textContent=ow+'×'+oh;g('wb').style.display='none';g('rb').disabled=false;}
   else if(big){g('si').textContent=dw+'×'+dh;g('wb').style.display='block';g('wb').textContent=t.warnLimit(MAX);g('rb').disabled=true;}
   else{g('si').textContent=ow+'×'+oh+' → '+dw+'×'+dh;g('wb').style.display='none';g('rb').disabled=false;}
+  scheduleSizeEstimate();
 }
 
 /* ══════════════════════════ Compare (before/after split) ══════════════════════════ */
@@ -1602,7 +1626,7 @@ function buildFileName(){
   const base = origFileName ? origFileName.replace(/\.[^./\\]+$/,'') : 'photo';
   const d=new Date();
   const ds = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
-  const ext = g('cmp').checked ? 'jpg' : 'png';
+  const ext = cmpQuality<100 ? 'jpg' : 'png';
   return base+'_flamingo_'+ds+'.'+ext;
 }
 
@@ -1643,12 +1667,10 @@ function finalize(){
     if(shareSupported) g('sb').classList.add('show');
   };
 
-  if(g('cmp').checked){
+  if(cmpQuality<100){
     // JPEG has no alpha channel, so flatten onto white first (matches the
-    // same approach already used for sharing) — quality is kept in a safe
-    // 70–95 range so the size savings don't come with visible artifacts.
-    const q=Math.max(70,Math.min(95,parseInt(g('cmpq').value)))/100;
-    flattenToWhite(resultCanvas).toBlob(onDone,'image/jpeg',q);
+    // same approach already used for sharing).
+    flattenToWhite(resultCanvas).toBlob(onDone,'image/jpeg',cmpQuality/100);
   } else {
     resultCanvas.toBlob(onDone,'image/png');
   }
